@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
@@ -9,40 +9,45 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { followingId } = await req.json();
+    const body = await req.json();
+    const { followingId, action = 'follow' } = body;
+
     if (!followingId) {
       return new NextResponse("Following ID is required", { status: 400 });
     }
 
-    // Check if already following
-    const existingFollow = await db.follow.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: session.user.id,
-          followingId,
-        },
-      },
-    });
+    if (action === 'follow') {
+      // Check if already following
+      const existingFollow = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "Follow"
+        WHERE "followerId" = ${session.user.id}
+        AND "followingId" = ${followingId}
+      `;
 
-    if (existingFollow) {
-      // Unfollow
-      await db.follow.delete({
-        where: {
-          id: existingFollow.id,
-        },
-      });
-      return NextResponse.json({ followed: false });
+      if (existingFollow.length > 0) {
+        return new NextResponse("Already following", { status: 400 });
+      }
+
+      // Create follow relationship
+      const follow = await prisma.$queryRaw<{ id: string }[]>`
+        INSERT INTO "Follow" ("id", "followerId", "followingId", "createdAt")
+        VALUES (gen_random_uuid(), ${session.user.id}, ${followingId}, NOW())
+        RETURNING id
+      `;
+
+      return NextResponse.json({ id: follow[0].id, action: 'follow' });
+    } else if (action === 'unfollow') {
+      // Delete follow relationship
+      await prisma.$queryRaw`
+        DELETE FROM "Follow"
+        WHERE "followerId" = ${session.user.id}
+        AND "followingId" = ${followingId}
+      `;
+
+      return NextResponse.json({ action: 'unfollow' });
     }
 
-    // Follow
-    await db.follow.create({
-      data: {
-        followerId: session.user.id,
-        followingId,
-      },
-    });
-
-    return NextResponse.json({ followed: true });
+    return new NextResponse("Invalid action", { status: 400 });
   } catch (error) {
     console.error("[FOLLOW_ERROR]", error);
     return new NextResponse("Internal Error", { status: 500 });

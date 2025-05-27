@@ -7,21 +7,21 @@ import { Separator } from "@/components/ui/separator";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Post } from "@/types/post";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { PostFeedback } from "@/components/posts/post-feedback";
+import { PostHeader } from "@/components/posts/post-header";
 import { StarRating } from "@/components/ui/star-rating";
 import { toast } from "sonner";
+import { Prisma } from "@prisma/client";
 
 interface PostPageProps {
-  params: {
-    postId: string;
-  };
+  params: { postId: string };
 }
 
 async function getPost(postId: string) {
   try {
-    const post = await db.post.findUnique({
+    const post = await prisma.post.findUnique({
       where: {
         id: postId,
       },
@@ -66,7 +66,7 @@ export default async function PostPage({ params }: PostPageProps) {
   const session = await auth();
 
   if (!post) {
-    return notFound();
+    notFound();
   }
 
   // Calculate reading time (assuming 200 words per minute)
@@ -84,85 +84,46 @@ export default async function PostPage({ params }: PostPageProps) {
     ? post.feedback.find(f => f.userId === session.user.id)?.type || null
     : null;
 
+  // Check if user is following the author
+  let isFollowing = false;
+  if (session?.user?.id && post.author?.id) {
+    try {
+      const follow = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "Follow"
+        WHERE "followerId" = ${session.user.id}
+        AND "followingId" = ${post.author.id}
+      `;
+      isFollowing = follow.length > 0;
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+      // Continue with isFollowing as false if there's an error
+    }
+  }
+
   return (
-    <article className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight">{post.title}</h1>
-          
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span>{post.author?.name || "Anonymous"}</span>
-              {post.author && session?.user?.id && post.author.id !== session.user.id && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ml-2"
-                  onClick={async () => {
-                    if (!post.author) return;
-                    try {
-                      const response = await fetch('/api/follow', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          followingId: post.author.id,
-                        }),
-                      });
-                      if (!response.ok) throw new Error('Failed to follow');
-                      toast.success('Successfully followed author');
-                    } catch (error) {
-                      toast.error('Failed to follow author');
-                    }
-                  }}
-                >
-                  Follow
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>{readingTime} min read</span>
-            </div>
-            
-            <time dateTime={post.publishedAt?.toISOString() || post.createdAt.toISOString()}>
-              {format(post.publishedAt || post.createdAt, "MMMM d, yyyy")}
-            </time>
-            <div className="flex items-center gap-2">
-              <StarRating rating={rating} />
-              <span className="text-xs">({likes + dislikes} ratings)</span>
-            </div>
-          </div>
-
-          {post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {post.tags.map((tag) => (
-                <Badge key={tag.id} variant="secondary">
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </header>
-
-        {/* Cover Image */}
+    <div className="container mx-auto px-4 py-8">
+      <article className="max-w-3xl mx-auto">
+        <PostHeader
+          title={post.title}
+          author={post.author}
+          readingTime={readingTime}
+          publishedAt={post.publishedAt}
+          createdAt={post.createdAt}
+          rating={rating}
+          totalRatings={likes + dislikes}
+          currentUserId={session?.user?.id}
+          isFollowing={isFollowing}
+        />
         {post.coverImage && (
-          <div className="aspect-video rounded-lg overflow-hidden">
+          <div className="aspect-video relative mb-8 rounded-lg overflow-hidden">
             <img
               src={post.coverImage}
               alt={post.title}
-              className="w-full h-full object-cover"
+              className="object-cover w-full h-full"
             />
           </div>
         )}
-
-        <Separator />
-
-        {/* Content */}
-        <div className="prose dark:prose-invert max-w-none">
+        <div className="prose prose-lg max-w-none">
           {post.excerpt && (
             <p className="text-xl text-muted-foreground mb-8">{post.excerpt}</p>
           )}
@@ -170,15 +131,22 @@ export default async function PostPage({ params }: PostPageProps) {
             {content}
           </ReactMarkdown>
         </div>
-
-        {/* Feedback */}
+        <footer className="mt-8 pt-8 border-t">
+          <div className="flex flex-wrap gap-2">
+            {post.tags.map((tag) => (
+              <Badge key={tag.id} variant="secondary">
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        </footer>
         <PostFeedback
           postId={post.id}
           initialLikes={likes}
           initialDislikes={dislikes}
           userFeedback={userFeedback}
         />
-      </div>
-    </article>
+      </article>
+    </div>
   );
 }
