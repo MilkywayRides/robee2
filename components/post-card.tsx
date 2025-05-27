@@ -3,15 +3,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Calendar, Eye, MoreVertical } from "lucide-react";
+import { Calendar, Eye, MoreVertical, UserPlus, UserMinus } from "lucide-react";
 import { Post } from "@/types/post";
 
 interface PostCardProps {
   post: Post;
   getStatusBadge: (status: string) => JSX.Element;
+  isFollowing?: boolean;
+  onFollow?: () => void;
 }
 
-export function PostCard({ post, getStatusBadge }: PostCardProps) {
+export function PostCard({ post, getStatusBadge, isFollowing, onFollow }: PostCardProps) {
   return (
     <Card className="group overflow-hidden border-border/60 transition-all hover:border-border hover:shadow-md">
       <CardHeader className="pb-3">
@@ -49,10 +51,32 @@ export function PostCard({ post, getStatusBadge }: PostCardProps) {
       <CardFooter className="flex justify-between items-center text-xs text-muted-foreground pt-0">
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
-            <AvatarImage src={post.author.image || ""} alt={post.author.name} />
-            <AvatarFallback>{post.author.name.substring(0, 2)}</AvatarFallback>
+            <AvatarImage src={post.author?.image || ""} alt={post.author?.name || "Anonymous"} />
+            <AvatarFallback>{post.author?.name?.substring(0, 2) || "An"}</AvatarFallback>
           </Avatar>
-          {post.author.name}
+          <div className="flex items-center gap-2">
+            <span>{post.author?.name || "Anonymous"}</span>
+            {post.author && onFollow && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2"
+                onClick={onFollow}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserMinus className="h-3 w-3 mr-1" />
+                    Unfollow
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-3 w-3 mr-1" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {post.status === "published" && (

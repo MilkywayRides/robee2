@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatNumber } from "@/lib/utils";
 
 interface PostFeedbackProps {
   postId: string;
@@ -16,7 +17,7 @@ export function PostFeedback({
   postId,
   initialLikes,
   initialDislikes,
-  userFeedback,
+  userFeedback = null,
 }: PostFeedbackProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
@@ -63,7 +64,7 @@ export function PostFeedback({
         className="flex items-center gap-2"
       >
         <ThumbsUp className="h-4 w-4" />
-        <span>{likes}</span>
+        <span>{formatNumber(likes)}</span>
       </Button>
       <Button
         variant={currentFeedback === "DISLIKE" ? "default" : "outline"}
@@ -73,7 +74,7 @@ export function PostFeedback({
         className="flex items-center gap-2"
       >
         <ThumbsDown className="h-4 w-4" />
-        <span>{dislikes}</span>
+        <span>{formatNumber(dislikes)}</span>
       </Button>
     </div>
   );

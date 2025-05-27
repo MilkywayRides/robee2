@@ -43,6 +43,8 @@ model User {
   twoFactorTokens         TwoFactorToken[]
   twoFactorConfirms       TwoFactorConfirmation[]
   posts                   Post[]                  @relation("UserPosts")
+  followers               Follow[]                @relation("Following")
+  following               Follow[]                @relation("Followers")
 }
 
 model Account {
@@ -162,4 +164,17 @@ model PostFeedback {
   @@unique([postId, userId])
   @@index([postId])
   @@index([userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }

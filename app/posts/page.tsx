@@ -3,6 +3,8 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Post } from "@/types/post";
 import { db } from "@/lib/db";
 import { PostStatus } from "@prisma/client";
@@ -18,6 +20,13 @@ async function getPublishedPosts() {
       },
       include: {
         tags: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          }
+        }
       },
     });
 
@@ -82,7 +91,34 @@ export default async function PostsPage() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          <span>{"Anonymous"}</span>
+                          <span>{post.author?.name || "Anonymous"}</span>
+                          {post.author && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-2"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  const response = await fetch('/api/follow', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                      followingId: post.author.id,
+                                    }),
+                                  });
+                                  if (!response.ok) throw new Error('Failed to follow');
+                                  toast.success('Successfully followed author');
+                                } catch (error) {
+                                  toast.error('Failed to follow author');
+                                }
+                              }}
+                            >
+                              Follow
+                            </Button>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
