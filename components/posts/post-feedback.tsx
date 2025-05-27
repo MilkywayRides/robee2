@@ -3,75 +3,97 @@
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils";
 
 interface PostFeedbackProps {
   postId: string;
   initialLikes: number;
   initialDislikes: number;
-  userFeedback?: "LIKE" | "DISLIKE" | null;
+  userFeedback: "LIKE" | "DISLIKE" | null;
 }
 
 export function PostFeedback({
   postId,
   initialLikes,
   initialDislikes,
-  userFeedback = null,
+  userFeedback: initialUserFeedback,
 }: PostFeedbackProps) {
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
-  const [currentFeedback, setCurrentFeedback] = useState<"LIKE" | "DISLIKE" | null>(userFeedback);
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentFeedback, setCurrentFeedback] = useState<"LIKE" | "DISLIKE" | null>(initialUserFeedback);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFeedback = async (type: "LIKE" | "DISLIKE") => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    // Optimistically update the UI
+    const previousFeedback = currentFeedback;
+    const newFeedback = previousFeedback === type ? null : type;
+    setCurrentFeedback(newFeedback);
+
+    // Optimistically update counts
+    if (previousFeedback === "LIKE") {
+      setLikes(prev => prev - 1);
+    } else if (previousFeedback === "DISLIKE") {
+      setDislikes(prev => prev - 1);
+    }
+
+    if (newFeedback === "LIKE") {
+      setLikes(prev => prev + 1);
+    } else if (newFeedback === "DISLIKE") {
+      setDislikes(prev => prev + 1);
+    }
+
     try {
-      setIsLoading(true);
       const response = await fetch(`/api/posts/${postId}/feedback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ type: newFeedback }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to submit feedback");
+        // Revert optimistic updates if the request fails
+        setCurrentFeedback(previousFeedback);
+        setLikes(initialLikes);
+        setDislikes(initialDislikes);
+        throw new Error("Failed to update feedback");
       }
-
-      const data = await response.json();
-
-      // Update counts based on the response
-      setLikes(data.likes);
-      setDislikes(data.dislikes);
-      setCurrentFeedback(data.userFeedback);
-
-      toast.success("Feedback submitted successfully");
     } catch (error) {
-      toast.error("Failed to submit feedback");
+      console.error("Error updating feedback:", error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-4 mt-8 pt-4 border-t">
+    <div className="flex items-center gap-4">
       <Button
-        variant={currentFeedback === "LIKE" ? "default" : "outline"}
+        variant="ghost"
         size="sm"
+        className={cn(
+          "flex items-center gap-2",
+          currentFeedback === "LIKE" && "text-blue-500"
+        )}
         onClick={() => handleFeedback("LIKE")}
-        disabled={isLoading}
-        className="flex items-center gap-2"
+        disabled={isSubmitting}
       >
         <ThumbsUp className="h-4 w-4" />
         <span>{formatNumber(likes)}</span>
       </Button>
+
       <Button
-        variant={currentFeedback === "DISLIKE" ? "default" : "outline"}
+        variant="ghost"
         size="sm"
+        className={cn(
+          "flex items-center gap-2",
+          currentFeedback === "DISLIKE" && "text-red-500"
+        )}
         onClick={() => handleFeedback("DISLIKE")}
-        disabled={isLoading}
-        className="flex items-center gap-2"
+        disabled={isSubmitting}
       >
         <ThumbsDown className="h-4 w-4" />
         <span>{formatNumber(dislikes)}</span>
