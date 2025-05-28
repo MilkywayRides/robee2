@@ -502,17 +502,30 @@ export function EditPostForm({ post }: EditPostFormProps) {
 
               {/* Editor */}
               <Card className="overflow-hidden">
-                <CardHeader className="py-3 px-4 bg-muted/30">
+                <CardHeader className="py-3 px-4 bg-muted/30 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-medium">Content Editor</CardTitle>
+                  <Button
+                    variant={previewMode ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setPreviewMode((prev) => !prev)}
+                  >
+                    {previewMode ? "Edit" : "Preview"}
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-0 border-t">
                   <div className="min-h-96">
-                    <Textarea
-                      value={editorData}
-                      onChange={handleEditorChange}
-                      placeholder="Start writing your post in markdown..."
-                      className="min-h-[400px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
+                    {!previewMode ? (
+                      <Textarea
+                        value={editorData}
+                        onChange={handleEditorChange}
+                        placeholder="Start writing your post in markdown..."
+                        className="min-h-[400px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                    ) : (
+                      <div className="prose dark:prose-invert max-w-none p-4">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorData}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
                 <CardFooter className="justify-between py-2 px-4 text-xs text-muted-foreground border-t">
