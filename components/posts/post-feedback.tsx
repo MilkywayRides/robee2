@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/utils";
@@ -70,34 +70,66 @@ export function PostFeedback({
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="inline-flex items-center rounded-lg border bg-card p-1 shadow-sm">
       <Button
         variant="ghost"
         size="sm"
         className={cn(
-          "flex items-center gap-2",
-          currentFeedback === "LIKE" && "text-blue-500"
+          "h-8 gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          currentFeedback === "LIKE" && [
+            "bg-green-50 text-green-700 hover:bg-green-100",
+            "dark:bg-green-950/50 dark:text-green-400 dark:hover:bg-green-950/70"
+          ],
+          isSubmitting && "pointer-events-none opacity-50"
         )}
         onClick={() => handleFeedback("LIKE")}
         disabled={isSubmitting}
       >
-        <ThumbsUp className="h-4 w-4" />
-        <span>{formatNumber(likes)}</span>
+        {isSubmitting && currentFeedback === "LIKE" ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ThumbsUp 
+            className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              currentFeedback === "LIKE" && "scale-110"
+            )} 
+          />
+        )}
+        <span className="tabular-nums">{formatNumber(likes)}</span>
       </Button>
+
+      <div className="mx-1 h-4 w-px bg-border" />
 
       <Button
         variant="ghost"
         size="sm"
         className={cn(
-          "flex items-center gap-2",
-          currentFeedback === "DISLIKE" && "text-red-500"
+          "h-8 gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          currentFeedback === "DISLIKE" && [
+            "bg-red-50 text-red-700 hover:bg-red-100",
+            "dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-950/70"
+          ],
+          isSubmitting && "pointer-events-none opacity-50"
         )}
         onClick={() => handleFeedback("DISLIKE")}
         disabled={isSubmitting}
       >
-        <ThumbsDown className="h-4 w-4" />
-        <span>{formatNumber(dislikes)}</span>
+        {isSubmitting && currentFeedback === "DISLIKE" ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ThumbsDown 
+            className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              currentFeedback === "DISLIKE" && "scale-110"
+            )} 
+          />
+        )}
+        <span className="tabular-nums">{formatNumber(dislikes)}</span>
       </Button>
     </div>
   );
-} 
+}
