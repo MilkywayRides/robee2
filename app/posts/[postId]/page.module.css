@@ -55,11 +55,93 @@
 }
 
 .prose pre {
-  @apply bg-muted p-4 rounded-lg overflow-x-auto my-4;
+  @apply bg-[#000000] p-4 rounded-lg overflow-x-auto my-4 relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prose pre::before {
+  content: "";
+  @apply absolute top-0 left-0 right-0 h-8 bg-[#1A1A1A] rounded-t-lg;
+}
+
+.prose pre::after {
+  content: "";
+  @apply absolute top-2 left-4 w-3 h-3 rounded-full bg-[#FF5F56];
+  box-shadow: 1.5rem 0 0 #FFBD2E, 3rem 0 0 #27C93F;
 }
 
 .prose pre code {
-  @apply bg-transparent p-0 text-sm;
+  @apply bg-transparent p-0 text-sm text-[#E5E5E5] block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Next.js documentation syntax highlighting colors */
+.prose pre code .keyword {
+  @apply text-[#FF7B72];
+}
+
+.prose pre code .string {
+  @apply text-[#A5D6FF];
+}
+
+.prose pre code .comment {
+  @apply text-[#6A9955];
+}
+
+.prose pre code .function {
+  @apply text-[#D2A8FF];
+}
+
+.prose pre code .number {
+  @apply text-[#B5CEA8];
+}
+
+.prose pre code .operator {
+  @apply text-[#FF7B72];
+}
+
+.prose pre code .class {
+  @apply text-[#4EC9B0];
+}
+
+.prose pre code .variable {
+  @apply text-[#9CDCFE];
+}
+
+.prose pre code .property {
+  @apply text-[#9CDCFE];
+}
+
+.prose pre code .punctuation {
+  @apply text-[#D4D4D4];
+}
+
+.prose pre code .tag {
+  @apply text-[#FF7B72];
+}
+
+.prose pre code .attr-name {
+  @apply text-[#9CDCFE];
+}
+
+.prose pre code .attr-value {
+  @apply text-[#A5D6FF];
+}
+
+.prose pre code .script {
+  @apply text-[#FF7B72];
+}
+
+.prose pre code .script-punctuation {
+  @apply text-[#D4D4D4];
+}
+
+.prose pre code .script-keyword {
+  @apply text-[#FF7B72];
+}
+
+.prose pre code .script-string {
+  @apply text-[#A5D6FF];
 }
 
 .prose img {

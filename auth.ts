@@ -7,6 +7,7 @@ import authConfig from '@/auth.config';
 import { getUserById } from '@/data/user';
 import { getAccountByUserId } from '@/data/account';
 import { getTwoFactorConfirmationByUserId } from '@/data/two-factor-confirmation';
+import { authOptions } from "@/lib/auth";
 
 export const {
   handlers: { GET, POST },
@@ -115,3 +116,5 @@ export const {
   session: { strategy: 'jwt' },
   ...authConfig
 });
+
+export const { auth: authOptionsAuth, signIn: authOptionsSignIn, signOut: authOptionsSignOut } = NextAuth(authOptions);
