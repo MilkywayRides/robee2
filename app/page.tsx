@@ -1,81 +1,567 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { PostCard } from "@/components/posts/post-card";
-import { HomeClient } from "@/components/home/home-client";
+import { db } from "@/lib/db";
+import { PostStatus, FeedbackType } from "@prisma/client";
+import { format } from "date-fns";
+import { Clock, User, Tag, ArrowRight, TrendingUp, BookOpen, Users, Flame, Star, ThumbsUp, MessageSquare, Eye } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { ViewCounter } from "@/components/posts/view-counter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface Post {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  content: any;
+  publishedAt: Date | null;
+  views: number;
+  author: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  } | null;
+  tags: Array<{
+    id: string;
+    name: string;
+  }>;
+  feedback: Array<{
+    id: string;
+    type: FeedbackType;
+    createdAt: Date;
+    userId: string;
+    postId: string;
+  }>;
+}
+
+async function getFeaturedPosts(): Promise<Post[]> {
+  const posts = await db.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      tags: true,
+      feedback: true,
+    },
+    orderBy: {
+      views: 'desc',
+    },
+    take: 3,
+  });
+
+  return posts;
+}
+
+async function getLatestPosts(): Promise<Post[]> {
+  const posts = await db.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      tags: true,
+      feedback: true,
+    },
+    orderBy: {
+      publishedAt: 'desc',
+    },
+    take: 6,
+  });
+
+  return posts;
+}
+
+async function getTrendingTopics() {
+  const tags = await db.tag.findMany({
+    include: {
+      _count: {
+        select: {
+          posts: true,
+        },
+      },
+    },
+    orderBy: {
+      posts: {
+        _count: 'desc',
+      },
+    },
+    take: 10,
+  });
+
+  return tags;
+}
+
+async function getMostEngagedPosts(): Promise<Post[]> {
+  const posts = await db.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      tags: true,
+      feedback: true,
+    },
+    orderBy: {
+      feedback: {
+        _count: 'desc',
+      },
+    },
+    take: 4,
+  });
+
+  return posts;
+}
+
+async function getRecommendedPosts(userId: string | undefined): Promise<Post[]> {
+  if (!userId) {
+    return getLatestPosts();
+  }
+
+  // Get user's reading history and preferences
+  const userInterests = await db.post.findMany({
+    where: {
+      feedback: {
+        some: {
+          userId: userId,
+          type: FeedbackType.LIKE,
+        },
+      },
+    },
+    include: {
+      tags: true,
+    },
+    take: 10,
+  });
+
+  // Extract tags from liked posts
+  const userTags = userInterests.flatMap(post => post.tags.map(tag => tag.id));
+
+  // Get recommended posts based on user's interests
+  const recommendedPosts = await db.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED,
+      tags: {
+        some: {
+          id: {
+            in: userTags,
+          },
+        },
+      },
+      NOT: {
+        feedback: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+      tags: true,
+      feedback: true,
+    },
+    take: 4,
+  });
+
+  return recommendedPosts;
+}
+
+async function getCommunityStats() {
+  try {
+    const [
+      totalPosts,
+      activeWriters,
+      totalViews,
+      totalEngagement
+    ] = await Promise.all([
+      db.post.count({
+        where: {
+          status: PostStatus.PUBLISHED,
+        },
+      }),
+      db.user.count({
+        where: {
+          posts: {
+            some: {
+              status: PostStatus.PUBLISHED,
+            },
+          },
+        },
+      }),
+      db.post.aggregate({
+        where: {
+          status: PostStatus.PUBLISHED,
+        },
+        _sum: {
+          views: true,
+        },
+      }),
+      db.postFeedback.count({
+        where: {
+          post: {
+            status: PostStatus.PUBLISHED,
+          },
+        },
+      }),
+    ]);
+
+    return {
+      totalPosts,
+      activeWriters,
+      totalViews: totalViews._sum.views || 0,
+      totalEngagement,
+    };
+  } catch (error) {
+    console.error("Error fetching community stats:", error);
+    return {
+      totalPosts: 0,
+      activeWriters: 0,
+      totalViews: 0,
+      totalEngagement: 0,
+    };
+  }
+}
 
 export default async function Home() {
   try {
     const session = await auth();
     const userId = session?.user?.id;
 
-    let posts = [];
+    const [
+      featuredPosts,
+      latestPosts,
+      trendingTopics,
+      mostEngagedPosts,
+      recommendedPosts,
+      communityStats
+    ] = await Promise.all([
+      getFeaturedPosts(),
+      getLatestPosts(),
+      getTrendingTopics(),
+      getMostEngagedPosts(),
+      getRecommendedPosts(userId),
+      getCommunityStats(),
+    ]);
 
-    if (userId) {
-      // Get followed authors' posts
-      const followedAuthors = await prisma.follow.findMany({
-        where: {
-          followerId: userId,
-        },
-        select: {
-          followingId: true,
-        },
-      });
+    return (
+      <div className="min-h-screen">
+        {/* Hero Section */}
+        <section className="relative bg-muted/50 border-b">
+          <div className="absolute inset-0 bg-gradient-to-b from-background/0 to-background" />
+          <div className="container relative mx-auto px-4 py-16 md:py-24">
+            <div className="max-w-3xl mx-auto text-center">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+                Discover and Share Knowledge
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8">
+                Join our community of writers and readers. Share your thoughts, learn from others, and grow together.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg">
+                  <Link href="/posts">Explore Posts</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/following">Following Feed</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      const followedAuthorIds = followedAuthors.map((f) => f.followingId);
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Main Content Area */}
+            <div className="lg:col-span-8 space-y-8">
+              {/* Featured Posts */}
+              <section>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    <h2 className="text-2xl font-bold">Featured Posts</h2>
+                  </div>
+                  <Button asChild variant="ghost" className="gap-2">
+                    <Link href="/posts">
+                      View All
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
 
-      // If user has followed authors, get their posts
-      if (followedAuthorIds.length > 0) {
-        posts = await prisma.post.findMany({
-          where: {
-            authorId: {
-              in: followedAuthorIds,
-            },
-            status: "PUBLISHED",
-          },
-          include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                image: true,
-              },
-            },
-            tags: true,
-            feedback: true,
-          },
-          orderBy: {
-            publishedAt: "desc",
-          },
-        });
-      }
-    }
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {featuredPosts.map((post) => {
+                    const content = typeof post.content === 'string' ? post.content : JSON.stringify(post.content);
+                    const wordCount = content.split(/\s+/).filter(Boolean).length;
+                    const readingTime = Math.ceil(wordCount / 200);
 
-    // If no followed posts or not logged in, get all recent posts
-    if (posts.length === 0) {
-      posts = await prisma.post.findMany({
-        where: {
-          status: "PUBLISHED",
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-          tags: true,
-          feedback: true,
-        },
-        orderBy: {
-          publishedAt: "desc",
-        },
-      });
-    }
+                    return (
+                      <Card key={post.id} className="group">
+                        <CardHeader>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                            <User className="h-4 w-4" />
+                            <span>{post.author?.name}</span>
+                          </div>
+                          <CardTitle className="group-hover:text-primary transition-colors">
+                            <Link href={`/posts/${post.id}`}>{post.title}</Link>
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2">
+                            {post.excerpt}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              <span>{readingTime} min read</span>
+                            </div>
+                            <ViewCounter postId={post.id} initialViews={post.views} />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
 
-    return <HomeClient posts={posts} />;
+              {/* Latest Posts */}
+              <section>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    <h2 className="text-2xl font-bold">Latest Posts</h2>
+                  </div>
+                  <Button asChild variant="ghost" className="gap-2">
+                    <Link href="/posts">
+                      View All
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {latestPosts.map((post) => {
+                    const content = typeof post.content === 'string' ? post.content : JSON.stringify(post.content);
+                    const wordCount = content.split(/\s+/).filter(Boolean).length;
+                    const readingTime = Math.ceil(wordCount / 200);
+
+                    return (
+                      <Card key={post.id} className="group">
+                        <CardHeader>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                            <User className="h-4 w-4" />
+                            <span>{post.author?.name}</span>
+                          </div>
+                          <CardTitle className="group-hover:text-primary transition-colors">
+                            <Link href={`/posts/${post.id}`}>{post.title}</Link>
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2">
+                            {post.excerpt}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{readingTime} min read</span>
+                              </div>
+                              <ViewCounter postId={post.id} initialViews={post.views} />
+                            </div>
+                            {post.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {post.tags.map((tag) => (
+                                  <Badge key={tag.id} variant="secondary">
+                                    <Tag className="h-3 w-3 mr-1" />
+                                    {tag.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Most Engaged Posts */}
+              <section>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    <h2 className="text-2xl font-bold">Most Discussed</h2>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {mostEngagedPosts.map((post) => {
+                    const content = typeof post.content === 'string' ? post.content : JSON.stringify(post.content);
+                    const wordCount = content.split(/\s+/).filter(Boolean).length;
+                    const readingTime = Math.ceil(wordCount / 200);
+                    const likes = post.feedback.filter(f => f.type === FeedbackType.LIKE).length;
+
+                    return (
+                      <Card key={post.id} className="group">
+                        <CardHeader>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                            <User className="h-4 w-4" />
+                            <span>{post.author?.name}</span>
+                          </div>
+                          <CardTitle className="group-hover:text-primary transition-colors">
+                            <Link href={`/posts/${post.id}`}>{post.title}</Link>
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2">
+                            {post.excerpt}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <ThumbsUp className="h-4 w-4" />
+                              <span>{likes} likes</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              <span>{readingTime} min read</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            {/* Sidebar */}
+            <div className="lg:col-span-4 space-y-8">
+              {/* Trending Topics */}
+              <section>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Flame className="h-5 w-5" />
+                      <CardTitle>Trending Topics</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {trendingTopics.map((tag) => (
+                        <Badge key={tag.id} variant="secondary" className="px-3 py-1">
+                          <Tag className="h-3 w-3 mr-1" />
+                          {tag.name}
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({tag._count.posts})
+                          </span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Recommended Posts */}
+              {userId && (
+                <section>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <Star className="h-5 w-5" />
+                        <CardTitle>Recommended for You</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {recommendedPosts.map((post) => (
+                          <div key={post.id} className="flex gap-4">
+                            <div className="flex-1 min-w-0">
+                              <Link 
+                                href={`/posts/${post.id}`}
+                                className="text-sm font-medium hover:text-primary transition-colors line-clamp-2"
+                              >
+                                {post.title}
+                              </Link>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <User className="h-3 w-3" />
+                                <span>{post.author?.name}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </section>
+              )}
+
+              {/* Community Stats */}
+              <section>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      <CardTitle>Community Stats</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Total Posts</p>
+                        <p className="text-2xl font-bold">{communityStats.totalPosts.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Active Writers</p>
+                        <p className="text-2xl font-bold">{communityStats.activeWriters.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Total Views</p>
+                        <p className="text-2xl font-bold">{communityStats.totalViews.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Engagement</p>
+                        <p className="text-2xl font-bold">{communityStats.totalEngagement.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   } catch (error) {
     console.error("Error fetching posts:", error);
-    return <HomeClient posts={[]} />;
+    return null;
   }
 }

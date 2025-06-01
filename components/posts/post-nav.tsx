@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, PenSquare, Settings, User, Menu } from "lucide-react";
+import { Home, BookOpen, PenSquare, Settings, User, Menu, Users, Library, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
@@ -25,9 +25,10 @@ import { SignInButton } from "@/components/auth/sign-in-button";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
-  { name: "Posts", href: "/posts", icon: BookOpen },
-  { name: "Write", href: "/write", icon: PenSquare },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Explore", href: "/explore", icon: BookOpen },
+  { name: "Community", href: "/community", icon: Users },
+  { name: "Resources", href: "/resources", icon: Library },
+  { name: "About", href: "/about", icon: Info },
 ];
 
 // List of protected routes where navigation should not be shown
@@ -96,6 +97,9 @@ export function PostNav() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -103,18 +107,21 @@ export function PostNav() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
+              <Link href="/write">Write Post</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/api/auth/signout">Log out</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
         <div className="flex items-center gap-2">
-          <SignInButton mode="modal">
+          <SignInButton mode="modal" asChild>
             <Button variant="ghost" size="sm">
               Sign in
             </Button>
           </SignInButton>
-          <SignInButton mode="modal">
+          <SignInButton mode="modal" asChild>
             <Button size="sm">
               Sign up
             </Button>
@@ -187,6 +194,12 @@ export function PostNav() {
                           </div>
                         </div>
                         <Link
+                          href="/dashboard"
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          Dashboard
+                        </Link>
+                        <Link
                           href="/profile"
                           className="text-sm text-muted-foreground hover:text-primary"
                         >
@@ -199,6 +212,12 @@ export function PostNav() {
                           Settings
                         </Link>
                         <Link
+                          href="/write"
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          Write Post
+                        </Link>
+                        <Link
                           href="/api/auth/signout"
                           className="text-sm text-muted-foreground hover:text-primary"
                         >
@@ -207,12 +226,12 @@ export function PostNav() {
                       </div>
                     ) : (
                       <div className="flex flex-col space-y-2">
-                        <SignInButton mode="modal">
+                        <SignInButton mode="modal" asChild>
                           <Button variant="ghost" className="w-full justify-start">
                             Sign in
                           </Button>
                         </SignInButton>
-                        <SignInButton mode="modal">
+                        <SignInButton mode="modal" asChild>
                           <Button className="w-full justify-start">
                             Sign up
                           </Button>
