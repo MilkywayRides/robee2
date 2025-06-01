@@ -7,6 +7,7 @@ import { auth } from '@/auth';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PostNav } from '@/components/posts/post-nav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -50,7 +51,12 @@ export default async function RootLayout({
           suppressHydrationWarning // Add this to suppress warnings on the body
         >
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
+            <div className="min-h-screen flex flex-col">
+              <PostNav />
+              <main className="flex-1">
+                {children}
+              </main>
+            </div>
             <Toaster />
           </ThemeProvider>
         </body>
