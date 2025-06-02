@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "postinstall": "prisma generate",
     "build": "prisma generate && next build",
+    "dev": "next dev",
     "start": "next start",
     "lint": "next lint",
     "setup-supabase": "ts-node lib/scripts/setup-supabase.ts"
