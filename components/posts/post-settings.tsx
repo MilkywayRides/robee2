@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Settings, Search, Share2 } from "lucide-react";
 
 interface PostSettingsProps {
   postTitle: string;
@@ -28,6 +29,24 @@ export function PostSettings({
   onToggleTag,
   onScheduledDateChange
 }: PostSettingsProps) {
+  const settings = [
+    {
+      title: "General",
+      description: "Manage your post&apos;s general settings",
+      icon: Settings,
+    },
+    {
+      title: "SEO",
+      description: "Optimize your post for search engines",
+      icon: Search,
+    },
+    {
+      title: "Social",
+      description: "Configure social sharing settings",
+      icon: Share2,
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <Card>
@@ -128,7 +147,7 @@ export function PostSettings({
             <Switch id="featured" />
           </div>
           <p className="text-sm text-muted-foreground">
-            Featured posts will be displayed prominently on your blog's homepage.
+            Featured posts will be displayed prominently on your blog&apos;s homepage.
           </p>
         </CardContent>
       </Card>

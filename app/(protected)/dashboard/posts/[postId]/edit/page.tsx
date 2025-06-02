@@ -11,10 +11,13 @@ import { PostStatus } from "@prisma/client";
 import { notFound } from "next/navigation";
 
 interface EditPostPageProps {
-  params: { postId: string };
+  params: {
+    postId: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default async function EditPostPage({ params }: EditPostPageProps) {
+export default async function EditPostPage({ params, searchParams }: EditPostPageProps) {
   const session = await auth();
   if (!session?.user) {
     redirect("/login");

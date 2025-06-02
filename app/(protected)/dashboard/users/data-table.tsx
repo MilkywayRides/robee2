@@ -122,7 +122,7 @@ const UserInfo = () => {
         Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {mounted ? currentTime : STATIC_DATE}
       </div>
       <div className="text-sm text-muted-foreground">
-        Current User's Login: {CURRENT_USER}
+        Current User&apos;s Login: {CURRENT_USER}
       </div>
     </div>
   )

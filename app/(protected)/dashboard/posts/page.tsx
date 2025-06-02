@@ -27,7 +27,6 @@ export default function PostsPage() {
     const fetchPosts = async () => {
       setIsLoading(true);
       try {
-        console.log("Fetching posts with status:", activeTab);
         const response = await fetch(`/api/posts?status=${activeTab}`, {
           method: "GET",
           headers: {
@@ -37,27 +36,18 @@ export default function PostsPage() {
         });
 
         const data = await response.json();
-        console.log("Response data:", data);
 
         if (!response.ok) {
           const errorMessage = data.error || data.details || response.statusText;
-          console.error("Failed to fetch posts:", {
-            status: response.status,
-            statusText: response.statusText,
-            error: data,
-          });
           throw new Error(`Failed to fetch posts: ${errorMessage}`);
         }
 
-        if (!Array.isArray(data)) {
-          console.error("Invalid response format:", data);
+        if (!data.posts || !Array.isArray(data.posts)) {
           throw new Error("Invalid response format from server");
         }
 
-        console.log("Setting posts:", data.length);
-        setPosts(data);
+        setPosts(data.posts);
       } catch (error) {
-        console.error("Error in fetchPosts:", error);
         toast.error(error instanceof Error ? error.message : "Failed to load posts. Please try again later.");
         setPosts([]); // Reset posts on error
       } finally {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PostStatus } from "@prisma/client";
 import { toast } from "sonner";
@@ -50,7 +50,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { EditorWrapper } from "@/components/editor/editor-wrapper";
+import { CustomBlockEditor, Block } from "@/components/editor/custom-block-editor";
 
 const allTags = [
   "Next.js", "React", "TypeScript", "JavaScript", "CSS", "Tailwind", 
@@ -96,62 +96,62 @@ export function CreatePostForm() {
   const [autoSave, setAutoSave] = useState(true);
   const [customTag, setCustomTag] = useState("");
   const [postId, setPostId] = useState<string | null>(null);
+  const [content, setContent] = useState<Block[]>([])
 
-  const handleSave = async () => {
+  // Calculate word count based on block content
+  useEffect(() => {
+    const words = content
+      .map(block => block.content)
+      .join(' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    setWordCount(words.length);
+  }, [content]);
+
+  // Handle save
+  const handleSave = useCallback(async () => {
+    if (!formData.title.trim()) {
+      toast.error("Please provide a title for your post.");
+      return;
+    }
+
+    if (formData.status === "SCHEDULED" && !formData.scheduledAt) {
+      toast.error("Please select a schedule date for your post.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setSavingStatus("saving");
 
-      if (!formData.title.trim()) {
-        toast.error("Please provide a title for your post");
-        setSavingStatus("error");
-        return;
-      }
-
-      if (formData.status === PostStatus.SCHEDULED && !formData.scheduledAt) {
-        toast.error("Please select a schedule date for your post");
-        setSavingStatus("error");
-        return;
-      }
-
-      const url = postId ? `/api/posts/${postId}` : "/api/posts";
-      const method = postId ? "PATCH" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      const response = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          content: JSON.stringify(content),
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save post");
+        throw new Error("Failed to create post");
       }
 
-      const post = await response.json();
-      if (!postId) {
-        setPostId(post.id);
-      }
-      
+      const data = await response.json();
+      setPostId(data.id);
       setUnsavedChanges(false);
       setLastSaved(new Date());
       setSavingStatus("success");
-      toast.success(
-        formData.status === PostStatus.PUBLISHED 
-          ? "Post published successfully!"
-          : formData.status === PostStatus.SCHEDULED
-            ? "Post scheduled successfully!"
-            : "Draft saved successfully!"
-      );
+      toast.success("Post created successfully");
 
-      if (formData.status === PostStatus.PUBLISHED && !autoSave) {
+      if (formData.status === "PUBLISHED") {
         router.push("/dashboard/posts");
         router.refresh();
       }
     } catch (error) {
-      console.error("Save error:", error);
-      toast.error("Failed to save post");
+      console.error("Create error:", error);
+      toast.error("Failed to create post");
       setSavingStatus("error");
     } finally {
       setIsLoading(false);
@@ -159,7 +159,7 @@ export function CreatePostForm() {
         setSavingStatus("idle");
       }, 2000);
     }
-  };
+  }, [formData, content, router]);
 
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
@@ -237,7 +237,7 @@ export function CreatePostForm() {
   };
 
   return (
-    <div className="flex flex-1 gap-4 p-4 md:p-6">
+    <div className="flex flex-col h-full">
       {/* Main Content */}
       <div className="flex-1 space-y-6">
         <div className="flex items-center justify-between mb-4">
@@ -278,7 +278,7 @@ export function CreatePostForm() {
             </Select>
 
             <Button 
-              onClick={handleSave} 
+              onClick={() => handleSave(autoSave)} 
               className="gap-2 min-w-24"
               disabled={isLoading}
             >
@@ -349,15 +349,47 @@ export function CreatePostForm() {
               <CardContent className="p-0 border-t">
                 <div className="min-h-96">
                   {!previewMode ? (
-                    <Textarea
-                      value={formData.content}
-                      onChange={handleEditorChange}
-                      placeholder="Start writing your post in markdown..."
-                      className="min-h-[400px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
+                    <div className="space-y-2">
+                      <Label>Content</Label>
+                      <CustomBlockEditor
+                        initialContent={content}
+                        onChange={setContent}
+                        readOnly={false}
+                      />
+                    </div>
                   ) : (
                     <div className="prose dark:prose-invert max-w-none p-4">
-                      {formData.content}
+                      {content.map((block) => {
+                        switch (block.type) {
+                          case 'heading1':
+                            return <h1 key={block.id}>{block.content}</h1>;
+                          case 'heading2':
+                            return <h2 key={block.id}>{block.content}</h2>;
+                          case 'heading3':
+                            return <h3 key={block.id}>{block.content}</h3>;
+                          case 'list':
+                            return <ul key={block.id}><li>{block.content}</li></ul>;
+                          case 'orderedList':
+                            return <ol key={block.id}><li>{block.content}</li></ol>;
+                          case 'quote':
+                            return <blockquote key={block.id}>{block.content}</blockquote>;
+                          case 'code':
+                            return <pre key={block.id}><code>{block.content}</code></pre>;
+                          case 'image':
+                            return block.data?.url ? (
+                              <figure key={block.id}>
+                                <img src={block.data.url} alt={block.data.caption || ''} />
+                                {block.data.caption && <figcaption>{block.data.caption}</figcaption>}
+                              </figure>
+                            ) : null;
+                          case 'link':
+                            return block.data?.url ? (
+                              <a key={block.id} href={block.data.url}>{block.content}</a>
+                            ) : null;
+                          default:
+                            return <p key={block.id}>{block.content}</p>;
+                        }
+                      })}
                     </div>
                   )}
                 </div>

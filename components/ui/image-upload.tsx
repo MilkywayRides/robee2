@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Image, Loader2 } from "lucide-react";
+import { Image as ImageIcon, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
-  value: string;
+  value?: string;
   onChange: (value: string) => void;
   onRemove: () => void;
   className?: string;
-  disabled?: boolean;
+  aspectRatio?: number;
 }
 
 export function ImageUpload({
@@ -20,102 +19,72 @@ export function ImageUpload({
   onChange,
   onRemove,
   className,
-  disabled
+  aspectRatio = 16 / 9,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setIsUploading(true);
-      const file = acceptedFiles[0];
-
+      const file = e.target.files?.[0];
       if (!file) return;
 
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image must be less than 5MB");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const data = await response.json();
-      onChange(data.url);
-      toast.success("Image uploaded successfully");
+      // Here you would typically upload to your storage service
+      // For now, we'll create a local URL
+      const imageUrl = URL.createObjectURL(file);
+      onChange(imageUrl);
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload image");
+      console.error("Error uploading image:", error);
     } finally {
       setIsUploading(false);
     }
-  }, [onChange]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp']
-    },
-    maxFiles: 1,
-    disabled: isUploading || disabled
-  });
+  };
 
   return (
-    <div className={cn("border-2 border-dashed rounded-lg p-4", className)}>
-      <div
-        {...getRootProps()}
-        className={cn(
-          "flex flex-col items-center justify-center gap-2 cursor-pointer py-8",
-          disabled && "cursor-not-allowed opacity-60"
-        )}
-      >
-        <input {...getInputProps()} />
-        {isUploading ? (
-          <>
-            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Uploading...</p>
-          </>
-        ) : (
-          <>
-            {value ? (
-              <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                <img
-                  src={value}
-                  alt="Upload"
-                  className="object-cover w-full h-full"
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemove();
-                    }}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <Image className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-center text-muted-foreground">
-                  {isDragActive ? "Drop the image here" : "Click or drag to upload"}
-                </p>
-              </>
-            )}
-          </>
-        )}
-      </div>
+    <div className={cn("relative", className)}>
+      {!value ? (
+        <label className="w-full h-48 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleUpload}
+            disabled={isUploading}
+          />
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+            <ImageIcon className="h-8 w-8" />
+            <p>{isUploading ? "Uploading..." : "Click to upload an image"}</p>
+          </div>
+        </label>
+      ) : (
+        <div className="relative group" style={{ aspectRatio }}>
+          <Image
+            src={value}
+            alt="Uploaded image"
+            fill
+            className="object-cover rounded-lg"
+          />
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+            <label className="cursor-pointer">
+              <Button variant="secondary" size="sm">
+                <ImageIcon className="h-4 w-4 mr-1" />
+                Change
+              </Button>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUpload}
+                disabled={isUploading}
+              />
+            </label>
+            <Button variant="destructive" size="sm" onClick={onRemove}>
+              <X className="h-4 w-4 mr-1" />
+              Remove
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+} 

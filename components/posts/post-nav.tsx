@@ -22,6 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SignInButton } from "@/components/auth/sign-in-button";
+import Image from "next/image";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
@@ -75,15 +76,15 @@ export function PostNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
-              {session.user?.image ? (
-                <img
-                  src={session.user.image}
-                  alt={session.user.name || "User avatar"}
-                  className="h-8 w-8 rounded-full"
+              <div className="relative w-10 h-10 overflow-hidden rounded-full">
+                <Image
+                  src={session.user?.image || '/placeholder-avatar.jpg'}
+                  alt={session.user?.name || 'Author'}
+                  fill
+                  className="object-cover"
+                  sizes="40px"
                 />
-              ) : (
-                <User className="h-4 w-4" />
-              )}
+              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -177,15 +178,15 @@ export function PostNav() {
                     {session ? (
                       <div className="flex flex-col space-y-2">
                         <div className="flex items-center gap-2">
-                          {session.user?.image ? (
-                            <img
-                              src={session.user.image}
-                              alt={session.user.name || "User avatar"}
-                              className="h-8 w-8 rounded-full"
+                          <div className="relative w-10 h-10 overflow-hidden rounded-full">
+                            <Image
+                              src={session.user?.image || '/placeholder-avatar.jpg'}
+                              alt={session.user?.name || 'Author'}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
                             />
-                          ) : (
-                            <User className="h-4 w-4" />
-                          )}
+                          </div>
                           <div className="flex flex-col">
                             <p className="text-sm font-medium">{session.user?.name}</p>
                             <p className="text-xs text-muted-foreground">

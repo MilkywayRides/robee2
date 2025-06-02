@@ -155,7 +155,7 @@ export default function PostSettings({
             <Switch id="featured" />
           </div>
           <p className="text-sm text-muted-foreground">
-            Featured posts will be displayed prominently on your blog's homepage.
+            Featured posts will be displayed prominently on your blog&apos;s homepage.
           </p>
         </CardContent>
       </Card>

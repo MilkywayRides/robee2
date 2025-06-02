@@ -215,7 +215,7 @@ export function Editor({
         editorRef.current = null;
       }
     };
-  }, [onChange, placeholder, initialData, theme, toast, debouncedSave]);
+  }, [onChange, placeholder, initialData, theme, toast, debouncedSave, addCustomToolbarButtons]);
 
   // Update save indicator
   useEffect(() => {
@@ -1055,7 +1055,7 @@ export function Editor({
                     )}>
                       {generatedContent}
                     </div>
- muon                   <Button
+                    <Button
                       className="w-full mt-2 text-xs"
                       onClick={() => applyGeneratedContent(generatedContent)}
                     >

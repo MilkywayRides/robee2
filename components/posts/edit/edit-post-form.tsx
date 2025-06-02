@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { ImageUpload } from "@/components/ui/image-upload";
+// import { ImageUpload } from "@/components/ui/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,6 +73,7 @@ import {
 } from "@/components/ui/tabs";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CustomBlockEditor } from "@/components/editor/custom-block-editor";
 
 interface EditPostFormProps {
   post: {
@@ -128,6 +129,31 @@ export function EditPostForm({ post }: EditPostFormProps) {
   const [activeTab, setActiveTab] = useState("editor");
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [previewMode, setPreviewMode] = useState(false);
+  const [content, setContent] = useState<Block[]>(() => {
+    try {
+      if (post.content) {
+        const parsed = JSON.parse(post.content);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      // If parsing fails, create a single paragraph block with the content
+      return [{
+        id: crypto.randomUUID(),
+        type: 'paragraph',
+        content: post.content || '',
+        data: {}
+      }];
+    }
+    // Default empty block if no content
+    return [{
+      id: crypto.randomUUID(),
+      type: 'paragraph',
+      content: '',
+      data: {}
+    }];
+  });
 
   // Auto-focus title input on mount
   useEffect(() => {
@@ -135,6 +161,17 @@ export function EditPostForm({ post }: EditPostFormProps) {
       titleInputRef.current.focus();
     }
   }, []);
+
+  // Calculate word count based on block content
+  useEffect(() => {
+    const words = content
+      .map(block => block.content)
+      .join(' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    setWordCount(words.length);
+  }, [content]);
 
   // Update post handler
   const handleUpdatePost = useCallback(async (e?: React.FormEvent) => {
@@ -161,7 +198,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          content: editorData,
+          content: JSON.stringify(content),
         }),
       });
 
@@ -188,30 +225,10 @@ export function EditPostForm({ post }: EditPostFormProps) {
         setSavingStatus("idle");
       }, 2000);
     }
-  }, [formData, editorData, post.id, router]);
+  }, [formData, content, post.id, router]);
 
   // Calculate reading time based on word count
   const readingTime = Math.ceil(wordCount / 200);
-
-  // Editor change handler
-  const handleEditorChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setEditorData(newContent);
-    setUnsavedChanges(true);
-    
-    const words = newContent.trim().split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
-    
-    if (autoSave) {
-      setSavingStatus("idle");
-      const saveTimer = setTimeout(() => {
-        setSavingStatus("saving");
-        handleUpdatePost();
-      }, 5000);
-      
-      return () => clearTimeout(saveTimer);
-    }
-  }, [autoSave, handleUpdatePost]);
 
   // Handle tags
   const handleTagToggle = (tag: string) => {
@@ -515,15 +532,47 @@ export function EditPostForm({ post }: EditPostFormProps) {
                 <CardContent className="p-0 border-t">
                   <div className="min-h-96">
                     {!previewMode ? (
-                      <Textarea
-                        value={editorData}
-                        onChange={handleEditorChange}
-                        placeholder="Start writing your post in markdown..."
-                        className="min-h-[400px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
+                      <div className="space-y-2">
+                        <Label>Content</Label>
+                        <CustomBlockEditor
+                          initialContent={content}
+                          onChange={setContent}
+                          readOnly={false}
+                        />
+                      </div>
                     ) : (
                       <div className="prose dark:prose-invert max-w-none p-4">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{editorData}</ReactMarkdown>
+                        {content.map((block) => {
+                          switch (block.type) {
+                            case 'heading1':
+                              return <h1 key={block.id}>{block.content}</h1>;
+                            case 'heading2':
+                              return <h2 key={block.id}>{block.content}</h2>;
+                            case 'heading3':
+                              return <h3 key={block.id}>{block.content}</h3>;
+                            case 'list':
+                              return <ul key={block.id}><li>{block.content}</li></ul>;
+                            case 'orderedList':
+                              return <ol key={block.id}><li>{block.content}</li></ol>;
+                            case 'quote':
+                              return <blockquote key={block.id}>{block.content}</blockquote>;
+                            case 'code':
+                              return <pre key={block.id}><code>{block.content}</code></pre>;
+                            case 'image':
+                              return block.data?.url ? (
+                                <figure key={block.id}>
+                                  <img src={block.data.url} alt={block.data.caption || ''} />
+                                  {block.data.caption && <figcaption>{block.data.caption}</figcaption>}
+                                </figure>
+                              ) : null;
+                            case 'link':
+                              return block.data?.url ? (
+                                <a key={block.id} href={block.data.url}>{block.content}</a>
+                              ) : null;
+                            default:
+                              return <p key={block.id}>{block.content}</p>;
+                          }
+                        })}
                       </div>
                     )}
                   </div>
@@ -547,7 +596,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ImageUpload
+                  {/* <ImageUpload
                     value={formData.coverImage}
                     onChange={(url) => {
                       setFormData(prev => ({ ...prev, coverImage: url }));
@@ -557,7 +606,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
                       setFormData(prev => ({ ...prev, coverImage: "" }));
                       setUnsavedChanges(true);
                     }}
-                  />
+                  /> */}
                 </CardContent>
                 <CardFooter className="text-sm text-muted-foreground">
                   Recommended size: 1200 x 630 pixels
@@ -593,7 +642,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
                       ))}
                     </div>
                   ) : (
-                    <Alert variant="outline" className="bg-muted/50">
+                    <Alert className="bg-muted/50">
                       <AlertDescription>
                         No tags added yet. Add some tags to categorize your post.
                       </AlertDescription>

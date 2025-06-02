@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { PostStatus } from "@prisma/client";
 
 export async function PATCH(
   req: Request,
@@ -9,79 +8,50 @@ export async function PATCH(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body = await req.json();
-    const {
-      title,
-      excerpt,
-      content,
-      status,
-      coverImage,
-      tags = [],
-      scheduledAt,
-      isAutoSave = false,
-    } = body;
+    const { title, excerpt, content, status, coverImage, tags, scheduledAt } = body;
 
-    const post = await db.post.findUnique({
+    if (!title) {
+      return new NextResponse("Title is required", { status: 400 });
+    }
+
+    if (status === "SCHEDULED" && !scheduledAt) {
+      return new NextResponse("Schedule date is required for scheduled posts", { status: 400 });
+    }
+
+    const post = await db.post.update({
       where: {
         id: params.postId,
         authorId: session.user.id,
       },
-      include: {
-        tags: true,
-      },
-    });
-
-    if (!post) {
-      return new NextResponse("Not found", { status: 404 });
-    }
-
-    // If it's an auto-save, don't update the status or scheduledAt
-    const updateData = {
-      title,
-      excerpt,
-      content,
-      coverImage,
-      ...(isAutoSave ? {} : {
-        status: status as PostStatus,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        publishedAt: status === PostStatus.PUBLISHED ? new Date() : null,
-      }),
-      tags: {
-        disconnect: post.tags.map(tag => ({ id: tag.id })),
-        connectOrCreate: tags.map((tagName: string) => ({
-          where: { name: tagName },
-          create: { name: tagName },
-        })),
-      },
-    };
-
-    const updatedPost = await db.post.update({
-      where: {
-        id: params.postId,
-      },
-      data: updateData,
-      include: {
-        author: {
-          select: {
-            name: true,
-            image: true,
-          },
+      data: {
+        title,
+        excerpt,
+        content,
+        status,
+        coverImage,
+        scheduledAt: status === "SCHEDULED" ? new Date(scheduledAt) : null,
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+        tags: {
+          deleteMany: {},
+          create: tags.map((tag: string) => ({
+            name: tag,
+          })),
         },
+      },
+      include: {
         tags: true,
       },
     });
 
-    return NextResponse.json({
-      post: updatedPost,
-      message: isAutoSave ? "Auto-saved successfully" : "Saved successfully"
-    });
+    return NextResponse.json(post);
   } catch (error) {
-    console.error("[POST_PATCH]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("[POST_UPDATE]", error);
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
 
@@ -113,7 +83,7 @@ export async function GET(
     return NextResponse.json(post);
   } catch (error) {
     console.error("[POST_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }
 
@@ -123,30 +93,20 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const post = await db.post.findUnique({
+    const post = await db.post.delete({
       where: {
         id: params.postId,
         authorId: session.user.id,
       },
     });
 
-    if (!post) {
-      return new NextResponse("Not found", { status: 404 });
-    }
-
-    await db.post.delete({
-      where: {
-        id: params.postId,
-      },
-    });
-
-    return new NextResponse(null, { status: 200 });
+    return NextResponse.json(post);
   } catch (error) {
     console.error("[POST_DELETE]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
 }

@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Image from "next/image";
 
 interface PostListProps {
   posts: Post[];
@@ -160,15 +161,15 @@ export default function PostList({
 
             return (
               <Card key={post.id} className="overflow-hidden group">
-                {post.coverImage && (
-                  <div className="aspect-video relative overflow-hidden">
-                    <img
-                      src={post.coverImage}
-                      alt={post.title}
-                      className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                )}
+                <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+                  <Image
+                    src={post.coverImage || '/placeholder-image.jpg'}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="line-clamp-1">{post.title}</CardTitle>

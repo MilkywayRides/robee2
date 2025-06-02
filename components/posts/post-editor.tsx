@@ -77,7 +77,7 @@ export function PostEditor({
         <div className="w-full mb-6 rounded-lg overflow-hidden relative group">
           <img
             src={coverImageUrl}
-            alt="Cover"
+            alt={`Cover image for ${postTitle}`}
             className="w-full h-64 object-cover"
           />
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
@@ -116,7 +116,7 @@ export function PostEditor({
               <p className="text-muted-foreground">{postExcerpt}</p>
             )}
             {coverImageUrl && (
-              <img src={coverImageUrl} alt="Cover" className="w-full h-64 object-cover mb-6 rounded-md" />
+              <img src={coverImageUrl} alt={`Cover image for ${postTitle}`} className="w-full h-64 object-cover mb-6 rounded-md" />
             )}
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {editorData}

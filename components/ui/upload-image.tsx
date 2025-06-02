@@ -2,10 +2,11 @@
 
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Image, Loader2, X } from "lucide-react";
+import { Image as ImageIcon, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface UploadImageProps {
   value: string;
@@ -81,34 +82,23 @@ export function UploadImage({
   return (
     <div className={className}>
       {value ? (
-        <div className="relative aspect-video rounded-lg overflow-hidden">
-          <img
+        <div className="relative w-full h-48 overflow-hidden rounded-lg">
+          <Image
             src={value}
             alt="Uploaded image"
-            className="object-cover w-full h-full"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
-          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={isUploading || disabled}
-                {...getRootProps()}
-              >
-                Change
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={isUploading || disabled}
-                onClick={onRemove}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <Button
+            type="button"
+            onClick={onRemove}
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       ) : (
         <div
@@ -129,7 +119,7 @@ export function UploadImage({
               </>
             ) : (
               <>
-                <Image className="h-10 w-10 text-muted-foreground" />
+                <ImageIcon className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
                 <p className="text-sm text-center text-muted-foreground">
                   {isDragActive ? (
                     "Drop the image here"

@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Post } from "@/types/post";
 import { formatNumber } from "@/lib/utils";
 import { FollowButton } from "./follow-button";
+import Image from 'next/image';
 
 interface PostCardClientProps {
   post: Post;
@@ -26,12 +27,24 @@ export function PostCardClient({ post, readingTime, likes, dislikes }: PostCardC
   return (
     <Link href={`/posts/${post.id}`} onClick={handleCardClick}>
       <Card className="h-full hover:shadow-lg transition-shadow">
-        {post.coverImage && (
-          <div className="aspect-video relative overflow-hidden rounded-t-lg">
-            <img
+        {post.coverImage ? (
+          <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+            <Image
               src={post.coverImage}
               alt={post.title}
-              className="object-cover w-full h-full"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          </div>
+        ) : (
+          <div className="relative w-full h-48 overflow-hidden rounded-t-lg bg-muted">
+            <Image
+              src="/placeholder-image.jpg"
+              alt="Post cover"
+              fill
+              className="object-cover opacity-50"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           </div>
         )}
