@@ -250,7 +250,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
         return (
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
             <Check className="h-3 w-3" />
-            <span>Saved at {lastSaved.toLocaleTimeString()}</span>
+            <span>Saved at {lastSaved?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         );
       case "error":
@@ -264,7 +264,7 @@ export function EditPostForm({ post }: EditPostFormProps) {
         return autoSave && !unsavedChanges ? (
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
             <Check className="h-3 w-3" />
-            <span>Saved at {lastSaved.toLocaleTimeString()}</span>
+            <span>Saved at {lastSaved?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         ) : null;
     }

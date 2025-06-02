@@ -19,9 +19,18 @@ export default async function CreatePostPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <main className="flex-1 container mx-auto px-4 py-6">
-          <CreatePostForm />
-        </main>
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <div className="px-4 lg:px-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-3xl font-bold">Create New Post</h1>
+                </div>
+                <CreatePostForm />
+              </div>
+            </div>
+          </div>
+        </div>
         <Footer />
       </SidebarInset>
     </SidebarProvider>

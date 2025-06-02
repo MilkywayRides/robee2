@@ -116,3 +116,37 @@ export async function GET(
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: { postId: string } }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const post = await db.post.findUnique({
+      where: {
+        id: params.postId,
+        authorId: session.user.id,
+      },
+    });
+
+    if (!post) {
+      return new NextResponse("Not found", { status: 404 });
+    }
+
+    await db.post.delete({
+      where: {
+        id: params.postId,
+      },
+    });
+
+    return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error("[POST_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}

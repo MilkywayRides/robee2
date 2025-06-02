@@ -220,7 +220,7 @@ function CreateProjectForm() {
                 <Input placeholder="My Awesome Project" {...field} />
               </FormControl>
               <FormDescription>
-                This is your project's display name.
+                This is your project&apos;s display name.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -327,7 +327,7 @@ function CreateProjectForm() {
                   />
                 </FormControl>
                 <FormDescription>
-                  Set the price for your project. Required if 'Paid Project' is enabled.
+                  Set the price for your project. Required if &apos;Paid Project&apos; is enabled.
                 </FormDescription>
                 <FormMessage /> {/* Displays Zod validation errors */}
               </FormItem>

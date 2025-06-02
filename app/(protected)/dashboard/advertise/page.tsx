@@ -358,7 +358,7 @@ export default async function AdsManagementPage() {
                   </div>
                   <h3 className="text-lg font-semibold">No archived ads</h3>
                   <p className="text-muted-foreground max-w-md mt-1">
-                    You don't have any archived ads at the moment.
+                    You don&apos;t have any archived ads at the moment.
                   </p>
                 </div>
               </TabsContent>

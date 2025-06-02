@@ -35,9 +35,24 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Edit Post</h1>
-      <EditPostForm post={post} />
-    </div>
+    <SidebarProvider>
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <div className="px-4 lg:px-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-3xl font-bold">Edit Post</h1>
+                </div>
+                <EditPostForm post={post} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

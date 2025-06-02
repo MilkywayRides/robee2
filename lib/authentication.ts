@@ -18,3 +18,6 @@ export async function getCurrentRole() {
     return null
   }
 }
+
+export const currentUser = getCurrentUser
+export const currentRole = getCurrentRole
