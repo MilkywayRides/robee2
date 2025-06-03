@@ -76,13 +76,13 @@ export function PostNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
-              <div className="relative w-10 h-10 overflow-hidden rounded-full">
+              <div className="relative w-8 h-8 overflow-hidden rounded-full">
                 <Image
                   src={session.user?.image || '/placeholder-avatar.jpg'}
                   alt={session.user?.name || 'Author'}
                   fill
                   className="object-cover"
-                  sizes="40px"
+                  sizes="32px"
                 />
               </div>
             </Button>
@@ -99,16 +99,6 @@ export function PostNav() {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/dashboard">Dashboard</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/profile">Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings">Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/write">Write Post</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/api/auth/signout">Log out</Link>
@@ -178,13 +168,13 @@ export function PostNav() {
                     {session ? (
                       <div className="flex flex-col space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="relative w-10 h-10 overflow-hidden rounded-full">
+                          <div className="relative w-8 h-8 overflow-hidden rounded-full">
                             <Image
                               src={session.user?.image || '/placeholder-avatar.jpg'}
                               alt={session.user?.name || 'Author'}
                               fill
                               className="object-cover"
-                              sizes="40px"
+                              sizes="32px"
                             />
                           </div>
                           <div className="flex flex-col">
