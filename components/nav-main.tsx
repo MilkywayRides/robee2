@@ -3,7 +3,7 @@
 import { MailIcon, PlusCircleIcon, type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-import { Button } from "@/components/ui/button"
+import { Button, type ButtonProps } from "@/components/ui/button"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -40,6 +40,7 @@ export function NavMain({ items, className }: NavMainProps) {
               className="h-9 w-9 shrink-0 group-data-[collapsible=icon]:opacity-0"
               variant="outline"
               size="icon"
+              type="button"
             >
               <MailIcon />
               <span className="sr-only">Inbox</span>
